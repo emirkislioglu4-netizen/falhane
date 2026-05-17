@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
 export default function FalcilarScreen() {
@@ -8,6 +8,10 @@ export default function FalcilarScreen() {
   const [kullanici, setKullanici] = useState<any>(null);
   const [falcilar, setFalcilar] = useState<any[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [yorumModal, setYorumModal] = useState(false);
+  const [secilenFalci, setSecilenFalci] = useState<any>(null);
+  const [puan, setPuan] = useState(5);
+  const [yorum, setYorum] = useState('');
 
   useEffect(() => {
     yukle();
@@ -70,6 +74,39 @@ export default function FalcilarScreen() {
     }
   };
 
+  const yorumAc = (falci: any) => {
+    if (!kullanici) {
+      Alert.alert('Giriş Yap', 'Yorum yapmak için önce giriş yapmalısın');
+      return;
+    }
+    setSecilenFalci(falci);
+    setPuan(5);
+    setYorum('');
+    setYorumModal(true);
+  };
+
+  const yorumKaydet = async () => {
+    if (!secilenFalci || !kullanici) return;
+
+    const { error } = await supabase
+      .from('yorumlar')
+      .upsert({
+        falci_id: secilenFalci.id,
+        musteri_id: kullanici.id,
+        puan: puan,
+        yorum: yorum,
+      }, { onConflict: 'falci_id,musteri_id' });
+
+    if (error) {
+      Alert.alert('Hata', error.message);
+      return;
+    }
+
+    Alert.alert('Başarılı', 'Yorumun kaydedildi!');
+    setYorumModal(false);
+    yukle();
+  };
+
   if (yukleniyor) {
     return (
       <View style={styles.bosContainer}>
@@ -90,7 +127,7 @@ export default function FalcilarScreen() {
           <View style={styles.bosBox}>
             <Text style={styles.bosIcon}>🔮</Text>
             <Text style={styles.bosBaslik}>Henüz falcı yok</Text>
-            <Text style={styles.bosAlt}>Falcılar kayıt olunca burada görünecekler. Sen de falcı olmak istersen profil sekmesinden falcı kaydı yapabilirsin!</Text>
+            <Text style={styles.bosAlt}>Falcılar kayıt olunca burada görünecekler.</Text>
           </View>
         ) : (
           <>
@@ -125,18 +162,75 @@ export default function FalcilarScreen() {
                     <Text style={styles.falciPuan}>★ {f.puan || '5.0'}</Text>
                     <Text style={styles.falciYorum}>{f.yorum_sayisi || 0} yorum</Text>
                   </View>
-                  <TouchableOpacity 
-                    style={styles.btnMesaj}
-                    onPress={() => mesajAt(f)}
-                  >
-                    <Text style={styles.btnMesajText}>💬 Mesaj At · {f.fiyat || 199}₺</Text>
-                  </TouchableOpacity>
+                  <View style={styles.btnGrup}>
+                    <TouchableOpacity 
+                      style={styles.btnYorum}
+                      onPress={() => yorumAc(f)}
+                    >
+                      <Text style={styles.btnYorumText}>★ Yorum Yap</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.btnMesaj}
+                      onPress={() => mesajAt(f)}
+                    >
+                      <Text style={styles.btnMesajText}>💬 {f.fiyat || 199}₺</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}
           </>
         )}
       </View>
+
+      <Modal
+        visible={yorumModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setYorumModal(false)}
+      >
+        <View style={styles.modalArkaPlan}>
+          <View style={styles.modalKutu}>
+            <Text style={styles.modalBaslik}>
+              {secilenFalci?.isim} için yorum
+            </Text>
+            <Text style={styles.modalAlt}>Puan ver ve yorumunu yaz</Text>
+
+            <View style={styles.yildizlar}>
+              {[1, 2, 3, 4, 5].map((p) => (
+                <TouchableOpacity key={p} onPress={() => setPuan(p)}>
+                  <Text style={[styles.yildiz, p <= puan && styles.yildizAktif]}>★</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Falcı hakkındaki yorumun..."
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={yorum}
+              onChangeText={setYorum}
+              multiline
+              numberOfLines={4}
+            />
+
+            <View style={styles.modalBtnGrup}>
+              <TouchableOpacity 
+                style={styles.modalBtnIptal}
+                onPress={() => setYorumModal(false)}
+              >
+                <Text style={styles.modalBtnIptalText}>İptal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalBtnKaydet}
+                onPress={yorumKaydet}
+              >
+                <Text style={styles.modalBtnKaydetText}>✓ Kaydet</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -173,6 +267,22 @@ const styles = StyleSheet.create({
   falciStats: { flexDirection: 'row', gap: 10 },
   falciPuan: { fontSize: 12, color: '#EF9F27' },
   falciYorum: { fontSize: 12, color: 'rgba(255,255,255,0.3)' },
-  btnMesaj: { backgroundColor: '#7F77DD', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
+  btnGrup: { flexDirection: 'row', gap: 6 },
+  btnYorum: { backgroundColor: 'rgba(239,159,39,0.15)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 9, borderWidth: 0.5, borderColor: 'rgba(239,159,39,0.3)' },
+  btnYorumText: { fontSize: 10, color: '#EF9F27', fontWeight: '500' },
+  btnMesaj: { backgroundColor: '#7F77DD', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9 },
   btnMesajText: { fontSize: 11, color: '#fff', fontWeight: '500' },
+  modalArkaPlan: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalKutu: { backgroundColor: '#1a0533', borderRadius: 20, padding: 24, width: '100%', maxWidth: 400, borderWidth: 0.5, borderColor: 'rgba(127,119,221,0.3)' },
+  modalBaslik: { fontSize: 18, color: '#fff', fontWeight: '600', marginBottom: 4 },
+  modalAlt: { fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 20 },
+  yildizlar: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 20 },
+  yildiz: { fontSize: 36, color: 'rgba(255,255,255,0.2)' },
+  yildizAktif: { color: '#EF9F27' },
+  modalInput: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 14, color: '#fff', fontSize: 13, minHeight: 80, textAlignVertical: 'top', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)' },
+  modalBtnGrup: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  modalBtnIptal: { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 14, alignItems: 'center' },
+  modalBtnIptalText: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
+  modalBtnKaydet: { flex: 1, backgroundColor: '#7F77DD', borderRadius: 12, padding: 14, alignItems: 'center' },
+  modalBtnKaydetText: { color: '#fff', fontSize: 13, fontWeight: '600' },
 });
