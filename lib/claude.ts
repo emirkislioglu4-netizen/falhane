@@ -1,4 +1,4 @@
-const ANTHROPIC_API_KEY = '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';
+const ANTHROPIC_API_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_KEY || '';
 
 export async function falBak(soru: string, falTuru: string): Promise<string> {
   try {
