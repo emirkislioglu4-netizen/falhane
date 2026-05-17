@@ -16,7 +16,7 @@ export default function Layout() {
         tabBarActiveTintColor: '#AFA9EC',
         tabBarInactiveTintColor: 'rgba(255,255,255,0.3)',
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 9,
           letterSpacing: 0.5,
         },
       }}
@@ -26,16 +26,25 @@ export default function Layout() {
         options={{
           title: 'Ana Sayfa',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="home-outline" size={22} color={color} />
+            <Ionicons name="home-outline" size={20} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="fal"
         options={{
-          title: 'Fallar',
+          title: 'AI Fal',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="sparkles-outline" size={22} color={color} />
+            <Ionicons name="sparkles-outline" size={20} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="burclar"
+        options={{
+          title: 'Burçlar',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="star-outline" size={20} color={color} />
           ),
         }}
       />
@@ -44,7 +53,16 @@ export default function Layout() {
         options={{
           title: 'Falcılar',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="people-outline" size={22} color={color} />
+            <Ionicons name="people-outline" size={20} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="mesajlar"
+        options={{
+          title: 'Mesajlar',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="chatbubbles-outline" size={20} color={color} />
           ),
         }}
       />
@@ -53,7 +71,7 @@ export default function Layout() {
         options={{
           title: 'Profil',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="person-outline" size={22} color={color} />
+            <Ionicons name="person-outline" size={20} color={color} />
           ),
         }}
       />
@@ -62,7 +80,7 @@ export default function Layout() {
         options={{
           title: 'Giriş',
           tabBarIcon: ({ color }) => (
-            <Ionicons name="log-in-outline" size={22} color={color} />
+            <Ionicons name="log-in-outline" size={20} color={color} />
           ),
         }}
       />

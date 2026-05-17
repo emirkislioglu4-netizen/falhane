@@ -13,7 +13,7 @@ export async function falBak(soru: string, falTuru: string): Promise<string> {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 1024,
-        system: 'Sen tecrübeli bir Türk falcısısın. ' + falTuru + ' bakıyorsun. KURALLAR: 3-4 paragraf yaz, her paragraf 2-3 cümle. Şair gibi konuşma, gerçek falcı gibi konuş. Somut şeyler söyle: zaman dilimi, kişi, durum. Net tahminler yap. Sevgili ruh, elimdeki, yıldızlar fısıldıyor gibi klişe ifadeler kullanma. Akıcı, samimi, Türk falcısı gibi konuş. 2-3 emoji kullan. Umut ver ama gerçekçi ol.',
+        system: 'Sen tecrübeli bir Türk falcısısın. ' + falTuru + ' bakıyorsun. KURALLAR: 3-4 paragraf yaz, her paragraf 2-3 cümle. Şair gibi konuşma, gerçek falcı gibi konuş. Somut şeyler söyle. Akıcı, samimi, Türk falcısı gibi konuş. 2-3 emoji kullan.',
         messages: [{ role: 'user', content: soru }],
       }),
     });
