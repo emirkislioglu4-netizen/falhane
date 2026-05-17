@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { falBak } from '../../lib/claude';
 
 export default function FalScreen() {
   const [soru, setSoru] = useState('');
@@ -14,20 +15,13 @@ export default function FalScreen() {
     { id: 'kariyer', icon: '⭐', label: 'Kariyer' },
   ];
 
-  const falBak = async () => {
+  const handleFalBak = async () => {
     if (!soru || !seciliFal) return;
     setYukleniyor(true);
     setCevap('');
-
-    await new Promise(r => setTimeout(r, 2000));
-
-    const cevaplar = [
-      `✨ ${seciliFal} için yıldızlar çok güzel bir şey söylüyor sana...\n\nBu dönem hayatında büyük bir dönüşüm yaşanacak. Uzun süredir beklediğin fırsat kapını çalıyor. Sabırlı ol, doğru an yakında gelecek.\n\nKalbin seni doğru yöne çekiyor. O sese kulak ver. Çevrendeki insanlar sana destek verecek, yalnız değilsin.\n\nYıldızlar şunu fısıldıyor: Korkma, adımını at. Bu ay içinde güzel bir haber gelecek ve hayatın yeni bir sayfa açacak. ✦`,
-      `🌙 ${seciliFal} falın çok şey anlatıyor...\n\nGecenin karanlığında bile yıldızlar parlıyor. Tıpkı senin yolun gibi. Şu an zor görünse de bu geçici bir bulut.\n\nYakında bir kapı açılacak. O kapıdan içeri girmekten çekinme. Seni bekleyen güzel sürprizler var.\n\nEnerji akışın çok güçlü. Bu dönem attığın adımlar kalıcı sonuçlar doğuracak. Cesaretini topla! ✦`,
-      `🔮 ${seciliFal} için kartlar açıldı...\n\nBu dönem sabır ve azmin zamanı. Zorluklara rağmen yoluna devam edersen büyük ödüller seni bekliyor.\n\nBir yakının sana çok önemli bir şey söyleyecek. Bu sözlere kulak ver, hayatını değiştirebilir.\n\nAy sonu itibarıyla güzel gelişmeler kapıda. Umudunu kaybetme, en karanlık gece bile sabahı getirir. ✦`,
-    ];
-
-    setCevap(cevaplar[Math.floor(Math.random() * cevaplar.length)]);
+    
+    const sonuc = await falBak(soru, seciliFal);
+    setCevap(sonuc);
     setYukleniyor(false);
   };
 
@@ -66,7 +60,7 @@ export default function FalScreen() {
 
         <TouchableOpacity
           style={[styles.button, (!soru || !seciliFal) && styles.buttonDisabled]}
-          onPress={falBak}
+          onPress={handleFalBak}
           disabled={!soru || !seciliFal || yukleniyor}
         >
           <Text style={styles.buttonText}>✨ Falıma Bak</Text>

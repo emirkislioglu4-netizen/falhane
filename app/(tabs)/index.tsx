@@ -23,14 +23,9 @@ export default function HomeScreen() {
             <Text style={styles.cardLabel}>Tarot</Text>
             <Text style={styles.cardPrice}>249₺</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.card}>
-            <Text style={styles.cardIcon}>📹</Text>
-            <Text style={styles.cardLabel}>Canlı</Text>
-            <Text style={styles.cardPrice}>349₺</Text>
-          </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>ŞU AN ÇEVRİMİÇİ</Text>
+        <Text style={styles.sectionTitle}>FALCILARIMIZ</Text>
 
         <TouchableOpacity style={styles.falciCard}>
           <View style={styles.falciAvatar}>

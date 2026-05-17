@@ -1,65 +1,141 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const falcilar = [
-  { id: 1, isim: 'Esra Hanım', icon: '🌙', uzmanlik: 'Tarot · Kahve · Astroloji', puan: '4.9', yorumSayisi: '2.4k', fiyat: '249₺', durum: 'online', deneyim: '12 yıl', hakkinda: 'Doğu ve Batı astrolojisini harmanlayan mistik bir yolculuk sizi bekliyor.' },
-  { id: 2, isim: 'Zeynep Aura', icon: '⭐', uzmanlik: 'Kristal · Numeroloji', puan: '5.0', yorumSayisi: '891', fiyat: '349₺', durum: 'online', deneyim: '8 yıl', hakkinda: 'Kristallerin enerjisi ve sayıların gizemi ile hayatınızı aydınlatıyorum.' },
-  { id: 3, isim: 'Fatma Baci', icon: '🔮', uzmanlik: 'Kahve · El Falı', puan: '4.8', yorumSayisi: '5.1k', fiyat: '199₺', durum: 'online', deneyim: '20 yıl', hakkinda: 'Geleneksel yöntemlerle kaderinizi okuyorum. 20 yıllık deneyim.' },
-  { id: 4, isim: 'Ayşe Nur', icon: '🌟', uzmanlik: 'Tarot · Rüya Yorumu', puan: '4.7', yorumSayisi: '1.2k', fiyat: '299₺', durum: 'offline', deneyim: '6 yıl', hakkinda: 'Tarot kartları ve rüyalarınızın gizli mesajlarını birlikte keşfedelim.' },
-  { id: 5, isim: 'Hüma Hanım', icon: '🌙', uzmanlik: 'Astroloji · Burç', puan: '4.9', yorumSayisi: '3.2k', fiyat: '399₺', durum: 'offline', deneyim: '15 yıl', hakkinda: 'Yıldızların size söylediği şeyleri birlikte dinleyelim.' },
-];
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { supabase } from '../../lib/supabase';
 
 export default function FalcilarScreen() {
+  const router = useRouter();
+  const [kullanici, setKullanici] = useState<any>(null);
+  const [falcilar, setFalcilar] = useState<any[]>([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
+
+  useEffect(() => {
+    yukle();
+  }, []);
+
+  const yukle = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setKullanici(user);
+
+    const { data } = await supabase
+      .from('profiller')
+      .select('*')
+      .eq('rol', 'falci');
+
+    if (data) setFalcilar(data);
+    setYukleniyor(false);
+  };
+
+  const mesajAt = async (falci: any) => {
+    if (!kullanici) {
+      Alert.alert('Giriş Yap', 'Mesaj atmak için önce giriş yapmalısın');
+      router.push('/giris');
+      return;
+    }
+
+    if (falci.id === kullanici.id) {
+      Alert.alert('Hata', 'Kendine mesaj atamazsın');
+      return;
+    }
+
+    const { data: mevcut } = await supabase
+      .from('sohbetler')
+      .select('id')
+      .eq('musteri_id', kullanici.id)
+      .eq('falci_id', falci.id)
+      .maybeSingle();
+
+    if (mevcut) {
+      router.push(`/sohbet/${mevcut.id}`);
+      return;
+    }
+
+    const { data: yeni, error } = await supabase
+      .from('sohbetler')
+      .insert({
+        musteri_id: kullanici.id,
+        falci_id: falci.id,
+        son_mesaj: 'Sohbet başlatıldı',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      Alert.alert('Hata', 'Sohbet başlatılamadı: ' + error.message);
+      return;
+    }
+
+    if (yeni) {
+      router.push(`/sohbet/${yeni.id}`);
+    }
+  };
+
+  if (yukleniyor) {
+    return (
+      <View style={styles.bosContainer}>
+        <ActivityIndicator color="#AFA9EC" size="large" />
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>👁 Falcılar</Text>
-        <Text style={styles.subtitle}>Uzman falcılarla canlı görüşün</Text>
+        <Text style={styles.subtitle}>Uzman falcılarla yazışın</Text>
       </View>
 
       <View style={styles.body}>
-        <View style={styles.onlineBadge}>
-          <View style={styles.onlineDot} />
-          <Text style={styles.onlineText}>3 falcı şu an çevrimiçi</Text>
-        </View>
+        {falcilar.length === 0 ? (
+          <View style={styles.bosBox}>
+            <Text style={styles.bosIcon}>🔮</Text>
+            <Text style={styles.bosBaslik}>Henüz falcı yok</Text>
+            <Text style={styles.bosAlt}>Falcılar kayıt olunca burada görünecekler. Sen de falcı olmak istersen profil sekmesinden falcı kaydı yapabilirsin!</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.onlineBadge}>
+              <View style={styles.onlineDot} />
+              <Text style={styles.onlineText}>{falcilar.filter(f => f.durum === 'online').length} falcı şu an çevrimiçi</Text>
+            </View>
 
-        <Text style={styles.sectionTitle}>TÜM FALCILAR</Text>
+            <Text style={styles.sectionTitle}>TÜM FALCILAR</Text>
 
-        {falcilar.map((f) => (
-          <TouchableOpacity key={f.id} style={styles.falciCard}>
-            <View style={styles.falciTop}>
-              <View style={styles.falciAvatar}>
-                <Text style={styles.falciIcon}>{f.icon}</Text>
-              </View>
-              <View style={styles.falciInfo}>
-                <View style={styles.falciIsimRow}>
-                  <Text style={styles.falciIsim}>{f.isim}</Text>
-                  <View style={[styles.durumBadge, f.durum === 'online' ? styles.online : styles.offline]}>
-                    <Text style={styles.durumText}>{f.durum === 'online' ? '● Çevrimiçi' : '○ Çevrimdışı'}</Text>
+            {falcilar.map((f) => (
+              <View key={f.id} style={styles.falciCard}>
+                <View style={styles.falciTop}>
+                  <View style={styles.falciAvatar}>
+                    <Text style={styles.falciIcon}>{f.avatar || '🌙'}</Text>
+                  </View>
+                  <View style={styles.falciInfo}>
+                    <View style={styles.falciIsimRow}>
+                      <Text style={styles.falciIsim}>{f.isim || 'Falcı'}</Text>
+                      <View style={[styles.durumBadge, f.durum === 'online' ? styles.online : styles.offline]}>
+                        <Text style={styles.durumText}>{f.durum === 'online' ? '● Çevrimiçi' : '○ Çevrimdışı'}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.falciUzmanlik}>{f.uzmanlik || 'Genel Fal'}</Text>
                   </View>
                 </View>
-                <Text style={styles.falciUzmanlik}>{f.uzmanlik}</Text>
-                <Text style={styles.falciDeneyim}>{f.deneyim} deneyim</Text>
-              </View>
-            </View>
 
-            <Text style={styles.falciHakkinda}>{f.hakkinda}</Text>
+                {f.hakkinda && <Text style={styles.falciHakkinda}>{f.hakkinda}</Text>}
 
-            <View style={styles.falciBottom}>
-              <View style={styles.falciStats}>
-                <Text style={styles.falciPuan}>★ {f.puan}</Text>
-                <Text style={styles.falciYorum}>{f.yorumSayisi} yorum</Text>
+                <View style={styles.falciBottom}>
+                  <View style={styles.falciStats}>
+                    <Text style={styles.falciPuan}>★ {f.puan || '5.0'}</Text>
+                    <Text style={styles.falciYorum}>{f.yorum_sayisi || 0} yorum</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.btnMesaj}
+                    onPress={() => mesajAt(f)}
+                  >
+                    <Text style={styles.btnMesajText}>💬 Mesaj At · {f.fiyat || 199}₺</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.falciButtons}>
-                <TouchableOpacity style={styles.btnMesaj}>
-                  <Text style={styles.btnMesajText}>💬 Mesaj</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.btnCanli, f.durum === 'offline' && styles.btnDisabled]}>
-                  <Text style={styles.btnCanliText}>📹 {f.fiyat}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            ))}
+          </>
+        )}
       </View>
     </ScrollView>
   );
@@ -67,6 +143,11 @@ export default function FalcilarScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A0814' },
+  bosContainer: { flex: 1, backgroundColor: '#0A0814', alignItems: 'center', justifyContent: 'center' },
+  bosBox: { alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 40 },
+  bosIcon: { fontSize: 60, marginBottom: 16 },
+  bosBaslik: { fontSize: 18, color: '#fff', fontWeight: '600', marginBottom: 8 },
+  bosAlt: { fontSize: 13, color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 20 },
   header: { padding: 32, paddingTop: 60, alignItems: 'center', backgroundColor: '#1a0533' },
   title: { fontSize: 24, fontWeight: '600', color: '#fff', letterSpacing: 2 },
   subtitle: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 6 },
@@ -87,16 +168,11 @@ const styles = StyleSheet.create({
   offline: { backgroundColor: 'rgba(255,255,255,0.05)' },
   durumText: { fontSize: 9, color: '#1D9E75' },
   falciUzmanlik: { fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 2 },
-  falciDeneyim: { fontSize: 10, color: 'rgba(127,119,221,0.8)' },
   falciHakkinda: { fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 18, marginBottom: 12 },
   falciBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   falciStats: { flexDirection: 'row', gap: 10 },
   falciPuan: { fontSize: 12, color: '#EF9F27' },
   falciYorum: { fontSize: 12, color: 'rgba(255,255,255,0.3)' },
-  falciButtons: { flexDirection: 'row', gap: 8 },
-  btnMesaj: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
-  btnMesajText: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
-  btnCanli: { backgroundColor: '#7F77DD', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
-  btnDisabled: { opacity: 0.4 },
-  btnCanliText: { fontSize: 11, color: '#fff', fontWeight: '500' },
+  btnMesaj: { backgroundColor: '#7F77DD', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
+  btnMesajText: { fontSize: 11, color: '#fff', fontWeight: '500' },
 });

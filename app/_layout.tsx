@@ -33,7 +33,7 @@ export default function Layout() {
       <Tabs.Screen
         name="fal"
         options={{
-          title: 'Fallar',
+          title: 'AI Fal',
           tabBarIcon: ({ color }) => (
             <Ionicons name="sparkles-outline" size={22} color={color} />
           ),
@@ -49,11 +49,29 @@ export default function Layout() {
         }}
       />
       <Tabs.Screen
+        name="mesajlar"
+        options={{
+          title: 'Mesajlar',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="chatbubbles-outline" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profil"
         options={{
           title: 'Profil',
           tabBarIcon: ({ color }) => (
             <Ionicons name="person-outline" size={22} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="giris"
+        options={{
+          title: 'Giriş',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="log-in-outline" size={22} color={color} />
           ),
         }}
       />

@@ -3,10 +3,12 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOp
 import { supabase } from '../../lib/supabase';
 
 export default function GirisScreen() {
+  const [rol, setRol] = useState<'musteri' | 'falci' | null>(null);
   const [mod, setMod] = useState<'giris' | 'kayit'>('giris');
   const [email, setEmail] = useState('');
   const [sifre, setSifre] = useState('');
   const [isim, setIsim] = useState('');
+  const [uzmanlik, setUzmanlik] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
   const [mesaj, setMesaj] = useState('');
   const [basarili, setBasarili] = useState(false);
@@ -17,16 +19,38 @@ export default function GirisScreen() {
     setMesaj('');
 
     if (mod === 'kayit') {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password: sifre,
-        options: { data: { full_name: isim } },
+        options: { 
+          data: { 
+            full_name: isim,
+            rol: rol,
+            uzmanlik: rol === 'falci' ? uzmanlik : null,
+          } 
+        },
       });
+      
       if (error) {
         setMesaj('Hata: ' + error.message);
-      } else {
-        setBasarili(true);
+        setYukleniyor(false);
+        return;
       }
+
+      // Kayıt başarılı, otomatik giriş yap
+      const { error: girisError } = await supabase.auth.signInWithPassword({
+        email,
+        password: sifre,
+      });
+
+      if (girisError) {
+        setMesaj('Kayıt başarılı! Ama giriş için tekrar dene.');
+        setMod('giris');
+        setYukleniyor(false);
+        return;
+      }
+
+      setBasarili(true);
     } else {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -44,13 +68,44 @@ export default function GirisScreen() {
   if (basarili) {
     return (
       <View style={styles.basariliContainer}>
-        <Text style={styles.basariliIcon}>🔮</Text>
+        <Text style={styles.basariliIcon}>{rol === 'falci' ? '🔮' : '✨'}</Text>
         <Text style={styles.basariliBaslik}>Hoş Geldin!</Text>
-        <Text style={styles.basariliAlt}>Falhane'ye katıldın. Yıldızlar seni bekliyor...</Text>
-        <TouchableOpacity style={styles.basariliBtn} onPress={() => setBasarili(false)}>
+        <Text style={styles.basariliAlt}>
+          {rol === 'falci' 
+            ? 'Falhane falcı paneline katıldın. Müşterilerin seni bekliyor...' 
+            : 'Falhane\'ye katıldın. Yıldızlar seni bekliyor...'}
+        </Text>
+        <TouchableOpacity style={styles.basariliBtn} onPress={() => { setBasarili(false); setRol(null); }}>
           <Text style={styles.basarliBtnText}>Devam Et</Text>
         </TouchableOpacity>
       </View>
+    );
+  }
+
+  if (!rol) {
+    return (
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.logo}>✦ FALHANE</Text>
+          <Text style={styles.logoSub}>RUHUNLA BULUŞ</Text>
+        </View>
+
+        <View style={styles.body}>
+          <Text style={styles.rolBaslik}>NASIL DEVAM ETMEK İSTERSİN?</Text>
+          
+          <TouchableOpacity style={styles.rolCard} onPress={() => setRol('musteri')}>
+            <Text style={styles.rolIcon}>👤</Text>
+            <Text style={styles.rolName}>Müşteri Olarak</Text>
+            <Text style={styles.rolDesc}>Fal baktır, AI ile sohbet et, falcılarla mesajlaş</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.rolCardFalci} onPress={() => setRol('falci')}>
+            <Text style={styles.rolIcon}>🔮</Text>
+            <Text style={styles.rolName}>Falcı Olarak</Text>
+            <Text style={styles.rolDesc}>Müşterilere fal bak, mesajlaş, kazan</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     );
   }
 
@@ -58,10 +113,16 @@ export default function GirisScreen() {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.logo}>✦ FALHANE</Text>
-        <Text style={styles.logoSub}>RUHUNLA BULUŞ</Text>
+        <Text style={styles.logoSub}>
+          {rol === 'falci' ? 'FALCI GİRİŞİ' : 'MÜŞTERİ GİRİŞİ'}
+        </Text>
       </View>
 
       <View style={styles.body}>
+        <TouchableOpacity style={styles.geriBtn} onPress={() => setRol(null)}>
+          <Text style={styles.geriBtnText}>← Geri</Text>
+        </TouchableOpacity>
+
         <View style={styles.modSecici}>
           <TouchableOpacity
             style={[styles.modBtn, mod === 'giris' && styles.modBtnAktif]}
@@ -90,6 +151,19 @@ export default function GirisScreen() {
           </View>
         )}
 
+        {mod === 'kayit' && rol === 'falci' && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>UZMANLIK ALANIN</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Tarot, Kahve, Astroloji..."
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={uzmanlik}
+              onChangeText={setUzmanlik}
+            />
+          </View>
+        )}
+
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>E-POSTA</Text>
           <TextInput
@@ -99,6 +173,7 @@ export default function GirisScreen() {
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
+            autoCapitalize="none"
           />
         </View>
 
@@ -129,7 +204,7 @@ export default function GirisScreen() {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.btnText}>
-              {mod === 'giris' ? '✨ Giriş Yap' : '🔮 Kayıt Ol'}
+              {mod === 'giris' ? '✨ Giriş Yap' : (rol === 'falci' ? '🔮 Falcı Olarak Kayıt Ol' : '✨ Kayıt Ol')}
             </Text>
           )}
         </TouchableOpacity>
@@ -144,7 +219,15 @@ const styles = StyleSheet.create({
   logo: { fontSize: 28, fontWeight: '600', color: '#fff', letterSpacing: 4 },
   logoSub: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 6, marginTop: 4 },
   body: { padding: 24 },
-  modSecici: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 4, marginTop: 24, marginBottom: 24 },
+  rolBaslik: { fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: 3, marginTop: 30, marginBottom: 20, textAlign: 'center' },
+  rolCard: { backgroundColor: 'rgba(127,119,221,0.1)', borderRadius: 18, padding: 24, alignItems: 'center', marginBottom: 16, borderWidth: 0.5, borderColor: 'rgba(127,119,221,0.3)' },
+  rolCardFalci: { backgroundColor: 'rgba(186,117,23,0.1)', borderRadius: 18, padding: 24, alignItems: 'center', borderWidth: 0.5, borderColor: 'rgba(186,117,23,0.3)' },
+  rolIcon: { fontSize: 50, marginBottom: 12 },
+  rolName: { fontSize: 18, fontWeight: '600', color: '#fff', marginBottom: 8 },
+  rolDesc: { fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', lineHeight: 18 },
+  geriBtn: { paddingVertical: 8, marginBottom: 8 },
+  geriBtnText: { fontSize: 13, color: '#AFA9EC' },
+  modSecici: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 4, marginTop: 16, marginBottom: 24 },
   modBtn: { flex: 1, padding: 12, alignItems: 'center', borderRadius: 10 },
   modBtnAktif: { backgroundColor: '#7F77DD' },
   modBtnText: { fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: '500' },
