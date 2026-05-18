@@ -1,6 +1,34 @@
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { bildirimGonder, bildirimIzniIste, gunlukBildirimZamanla } from '../../lib/bildirimler';
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const [bildirimGosterildi, setBildirimGosterildi] = useState(false);
+
+  useEffect(() => {
+    const kontrolEt = async () => {
+      try {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+          if (Notification.permission === 'default') {
+            setBildirimGosterildi(true);
+          }
+        }
+      } catch (e) {}
+    };
+    kontrolEt();
+  }, []);
+
+  const bildirimAc = async () => {
+    const izin = await bildirimIzniIste();
+    if (izin) {
+      await bildirimGonder('✨ Bildirimler Aktif!', 'Artık burç yorumların ve mesajların için bildirim alacaksın 🔮');
+      await gunlukBildirimZamanla();
+      setBildirimGosterildi(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -10,68 +38,62 @@ export default function HomeScreen() {
         <Text style={styles.gunlukSub}>Bugün güçlü değişimler seni bekliyor...</Text>
       </View>
 
+      {bildirimGosterildi && (
+        <View style={styles.bildirimBanner}>
+          <Text style={styles.bildirimIcon}>🔔</Text>
+          <View style={styles.bildirimMetin}>
+            <Text style={styles.bildirimBaslik}>Bildirimleri Aç</Text>
+            <Text style={styles.bildirimAlt}>Her sabah burç yorumun ve özel mesajlar için</Text>
+          </View>
+          <TouchableOpacity style={styles.bildirimBtn} onPress={bildirimAc}>
+            <Text style={styles.bildirimBtnText}>Aç</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.body}>
         <Text style={styles.sectionTitle}>NE İSTİYORSUN?</Text>
         <View style={styles.cards}>
-          <TouchableOpacity style={styles.card}>
+          <TouchableOpacity style={styles.card} onPress={() => router.push('/fal')}>
             <Text style={styles.cardIcon}>🤖</Text>
             <Text style={styles.cardLabel}>AI Fal</Text>
             <Text style={styles.cardPrice}>59₺</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.card}>
+          <TouchableOpacity style={styles.card} onPress={() => router.push('/falcilar')}>
             <Text style={styles.cardIcon}>🎴</Text>
             <Text style={styles.cardLabel}>Tarot</Text>
             <Text style={styles.cardPrice}>249₺</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.card} onPress={() => router.push('/burclar')}>
+            <Text style={styles.cardIcon}>⭐</Text>
+            <Text style={styles.cardLabel}>Burçlar</Text>
+            <Text style={styles.cardPrice}>Ücretsiz</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.card} onPress={() => router.push('/falcilar')}>
+            <Text style={styles.cardIcon}>🔮</Text>
+            <Text style={styles.cardLabel}>Falcılar</Text>
+            <Text style={styles.cardPrice}>199₺+</Text>
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>FALCILARIMIZ</Text>
-
-        <TouchableOpacity style={styles.falciCard}>
-          <View style={styles.falciAvatar}>
-            <Text style={styles.falciAvatarIcon}>🌙</Text>
-          </View>
-          <View style={styles.falciInfo}>
-            <Text style={styles.falciName}>Esra Hanım</Text>
-            <Text style={styles.falciSpec}>🟢 Tarot · Kahve · Astroloji</Text>
-          </View>
-          <View style={styles.falciRight}>
-            <Text style={styles.falciPrice}>249₺</Text>
-            <Text style={styles.falciRating}>★ 4.9</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.falciCard}>
-          <View style={[styles.falciAvatar, { backgroundColor: 'rgba(29,158,117,0.2)' }]}>
-            <Text style={styles.falciAvatarIcon}>⭐</Text>
-          </View>
-          <View style={styles.falciInfo}>
-            <Text style={styles.falciName}>Zeynep Aura</Text>
-            <Text style={styles.falciSpec}>🟢 Kristal · Numeroloji</Text>
-          </View>
-          <View style={styles.falciRight}>
-            <Text style={styles.falciPrice}>349₺</Text>
-            <Text style={styles.falciRating}>★ 5.0</Text>
-          </View>
-        </TouchableOpacity>
-
-        <Text style={styles.sectionTitle}>ÜYELİK</Text>
-        <View style={styles.plans}>
-          <View style={styles.planFree}>
-            <Text style={styles.planName}>Ücretsiz</Text>
-            <Text style={styles.planPrice}>0₺</Text>
-            <Text style={styles.planFeature}>3 AI fal/ay</Text>
-          </View>
-          <View style={styles.planPremium}>
-            <Text style={[styles.planName, { color: '#AFA9EC' }]}>Premium</Text>
-            <Text style={[styles.planPrice, { color: '#AFA9EC' }]}>199₺</Text>
-            <Text style={styles.planFeature}>Sınırsız AI{'\n'}%20 indirim</Text>
-          </View>
-          <View style={styles.planVip}>
-            <Text style={[styles.planName, { color: '#EF9F27' }]}>VIP</Text>
-            <Text style={[styles.planPrice, { color: '#EF9F27' }]}>499₺</Text>
-            <Text style={styles.planFeature}>Her şey{'\n'}dahil</Text>
-          </View>
+        <Text style={styles.sectionTitle}>ÜYELİK PAKETLERİ</Text>
+        <View style={styles.planlar}>
+          <TouchableOpacity style={styles.plan}>
+            <Text style={styles.planIcon}>✨</Text>
+            <Text style={styles.planIsim}>Standart</Text>
+            <Text style={styles.planFiyat}>Ücretsiz</Text>
+            <Text style={styles.planOzellik}>• Günlük 1 burç yorumu</Text>
+            <Text style={styles.planOzellik}>• Sınırlı AI fal</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.planPremium}>
+            <Text style={styles.planRozet}>EN POPÜLER</Text>
+            <Text style={styles.planIcon}>🌟</Text>
+            <Text style={styles.planIsim}>Premium</Text>
+            <Text style={styles.planFiyat}>99₺/ay</Text>
+            <Text style={styles.planOzellik}>• Sınırsız AI fal</Text>
+            <Text style={styles.planOzellik}>• Detaylı burç yorumu</Text>
+            <Text style={styles.planOzellik}>• İndirimli falcı seansı</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
@@ -82,30 +104,29 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A0814' },
   header: { padding: 32, paddingTop: 60, alignItems: 'center', backgroundColor: '#1a0533' },
   logo: { fontSize: 28, fontWeight: '600', color: '#fff', letterSpacing: 4 },
-  logoSub: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 6, marginTop: 4 },
-  gunluk: { marginTop: 20, fontSize: 14, color: '#AFA9EC' },
-  gunlukSub: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 },
+  logoSub: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 6, marginTop: 4, marginBottom: 24 },
+  gunluk: { fontSize: 14, color: '#AFA9EC', marginBottom: 6 },
+  gunlukSub: { fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center' },
+  bildirimBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(127,119,221,0.15)', margin: 16, padding: 14, borderRadius: 14, borderWidth: 0.5, borderColor: 'rgba(127,119,221,0.3)', gap: 12 },
+  bildirimIcon: { fontSize: 28 },
+  bildirimMetin: { flex: 1 },
+  bildirimBaslik: { fontSize: 13, color: '#fff', fontWeight: '600', marginBottom: 2 },
+  bildirimAlt: { fontSize: 10, color: 'rgba(255,255,255,0.5)', lineHeight: 14 },
+  bildirimBtn: { backgroundColor: '#7F77DD', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8 },
+  bildirimBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   body: { padding: 16 },
-  sectionTitle: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 3, marginBottom: 12, marginTop: 20 },
-  cards: { flexDirection: 'row', gap: 10 },
-  card: { flex: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)' },
-  cardIcon: { fontSize: 24, marginBottom: 6 },
-  cardLabel: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
-  cardPrice: { fontSize: 10, color: '#AFA9EC', marginTop: 3 },
-  falciCard: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.08)' },
-  falciAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(127,119,221,0.2)', alignItems: 'center', justifyContent: 'center' },
-  falciAvatarIcon: { fontSize: 20 },
-  falciInfo: { flex: 1 },
-  falciName: { fontSize: 13, color: 'rgba(255,255,255,0.9)', fontWeight: '500' },
-  falciSpec: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
-  falciRight: { alignItems: 'flex-end' },
-  falciPrice: { fontSize: 13, color: '#AFA9EC', fontWeight: '500' },
-  falciRating: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
-  plans: { flexDirection: 'row', gap: 8, marginBottom: 40 },
-  planFree: { flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.08)' },
-  planPremium: { flex: 1, backgroundColor: 'rgba(127,119,221,0.1)', borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 0.5, borderColor: 'rgba(127,119,221,0.3)' },
-  planVip: { flex: 1, backgroundColor: 'rgba(186,117,23,0.1)', borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 0.5, borderColor: 'rgba(186,117,23,0.3)' },
-  planName: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.6)', marginBottom: 4 },
-  planPrice: { fontSize: 16, fontWeight: '600', color: 'rgba(255,255,255,0.9)', marginBottom: 6 },
-  planFeature: { fontSize: 9, color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 14 },
+  sectionTitle: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 3, marginBottom: 12, marginTop: 16 },
+  cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  card: { width: '48%', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 18, alignItems: 'center', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.08)' },
+  cardIcon: { fontSize: 36, marginBottom: 8 },
+  cardLabel: { fontSize: 14, color: '#fff', fontWeight: '500', marginBottom: 4 },
+  cardPrice: { fontSize: 11, color: '#AFA9EC' },
+  planlar: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+  plan: { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 18, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.08)' },
+  planPremium: { flex: 1, backgroundColor: 'rgba(127,119,221,0.15)', borderRadius: 16, padding: 18, borderWidth: 0.5, borderColor: 'rgba(127,119,221,0.4)', position: 'relative' },
+  planRozet: { position: 'absolute', top: -8, right: 8, backgroundColor: '#7F77DD', color: '#fff', fontSize: 8, fontWeight: '600', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, letterSpacing: 1, overflow: 'hidden' },
+  planIcon: { fontSize: 28, marginBottom: 6 },
+  planIsim: { fontSize: 14, color: '#fff', fontWeight: '600', marginBottom: 4 },
+  planFiyat: { fontSize: 13, color: '#AFA9EC', marginBottom: 10 },
+  planOzellik: { fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 3 },
 });
