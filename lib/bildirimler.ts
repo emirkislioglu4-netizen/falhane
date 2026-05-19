@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { supabase } from './supabase';
 
-// Bildirim ayarları
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -12,7 +12,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Bildirim izni iste
 export async function bildirimIzniIste() {
   if (Platform.OS === 'web') {
     if ('Notification' in window) {
@@ -33,7 +32,6 @@ export async function bildirimIzniIste() {
   return finalStatus === 'granted';
 }
 
-// Anlık bildirim gönder
 export async function bildirimGonder(baslik: string, mesaj: string) {
   if (Platform.OS === 'web') {
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -55,39 +53,55 @@ export async function bildirimGonder(baslik: string, mesaj: string) {
   });
 }
 
-// Günlük olumlu mesajlar
-const gunlukMesajlar = [
-  { baslik: '✨ Günaydın!', mesaj: 'Bugün senin için harika bir gün olacak. Yıldızlar seninle!' },
-  { baslik: '🌙 Sabahın Güzelliği', mesaj: 'Bugün yeni fırsatlar kapını çalacak. Hazır ol!' },
-  { baslik: '🔮 Yeni Bir Gün', mesaj: 'Bugün hayatında güzel sürprizler var. Burç yorumun hazır!' },
-  { baslik: '⭐ Sabah Mesajı', mesaj: 'Sevgi ve bereket dolu bir gün seni bekliyor ✨' },
-  { baslik: '🌟 Yıldızlar Konuştu', mesaj: 'Bugün enerjin yüksek olacak. İyi şanslar!' },
-  { baslik: '💜 Falhane', mesaj: 'Günün başlıyor! Burcunun sana ne söylediğine bak.' },
-  { baslik: '🌅 Yeni Gün', mesaj: 'Bugün kalbini açtığın her şey gerçek olabilir 🦋' },
-  { baslik: '✦ İyi Sabahlar', mesaj: 'Kahveni al, burç yorumunu oku. Güzel bir gün seni bekliyor ☕' },
-];
+// Burç bazlı mesajlar
+const burcMesajlari: Record<string, string[]> = {
+  'Koç': ['Bugün enerjin tavan! Yeni bir başlangıç için harika bir gün 🔥', 'Cesaretin seni yeni yerlere götürecek ⚔️'],
+  'Boğa': ['Bugün maddi olarak güzel sürprizler var 💰', 'Sabırlı ol, beklediğin haber yakında gelecek 🌿'],
+  'İkizler': ['Bugün çevrenden ilginç bir teklif gelebilir 💬', 'İletişim günün, biriyle önemli konuşma yapacaksın ✨'],
+  'Yengeç': ['Aile ile güzel anlar seni bekliyor 🏡', 'Duygularını gizleme, bugün açıkça konuşma günü 🌙'],
+  'Aslan': ['Bugün herkesin dikkati üzerinde, parla! 👑', 'Bir başarın takdir görecek, gururlu ol 🦁'],
+  'Başak': ['Detaylara dikkat et, bugün önemli bir şeyi yakalayacaksın 📋', 'İş hayatında küçük bir fırsat büyük dönecek 🌾'],
+  'Terazi': ['Bugün dengeli karar verme günü ⚖️', 'Yakınlarınla güzel bir uyum yakalayacaksın 🌸'],
+  'Akrep': ['Bugün sezgilerin çok güçlü, dinle onları 🦂', 'Gizli bir gerçek ortaya çıkabilir, hazırlıklı ol 🌑'],
+  'Yay': ['Bugün yeni bir maceraya atılma günü 🏹', 'Şansın açık, beklenmedik bir fırsat geliyor ✨'],
+  'Oğlak': ['Bugün hedeflerine bir adım daha yaklaşacaksın 🎯', 'İş hayatında istikrar günleri başlıyor 🏔️'],
+  'Kova': ['Bugün özgün fikirlerin parlayacak 💡', 'Sıradışı bir gün, beklenmedik gelişmelere açık ol 🌟'],
+  'Balık': ['Bugün sezgilerin sana yol gösterecek 🐠', 'Romantik anlar seni bekliyor 💜'],
+};
 
-const aksamMesajlari = [
-  { baslik: '🌙 İyi Akşamlar', mesaj: 'Gün bitti, yıldızlar sana fısıldıyor. Falına bak!' },
-  { baslik: '✨ Akşam Vakti', mesaj: 'Bugün nasıldı? Yarın için yıldızlara danış 🔮' },
-  { baslik: '💫 Gece Yarısı', mesaj: 'Rüyanda gördüklerini unutma. Yarın yorumlayabilirim!' },
-  { baslik: '🌟 Akşam Mesajı', mesaj: 'Bugün öğrendiklerini sakla. Yarın yeni bir gün!' },
-];
-
-// Rastgele mesaj seç
-export function rastgeleMesaj(zaman: 'sabah' | 'aksam') {
-  const mesajlar = zaman === 'sabah' ? gunlukMesajlar : aksamMesajlari;
-  return mesajlar[Math.floor(Math.random() * mesajlar.length)];
+export async function kullaniciyaOzelMesaj(): Promise<{baslik: string, mesaj: string}> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase
+        .from('profiller')
+        .select('burc, isim')
+        .eq('id', user.id)
+        .single();
+      
+      if (data?.burc && burcMesajlari[data.burc]) {
+        const mesajlar = burcMesajlari[data.burc];
+        const mesaj = mesajlar[Math.floor(Math.random() * mesajlar.length)];
+        return {
+          baslik: `✨ ${data.isim || 'Merhaba'}, ${data.burc} burcu için`,
+          mesaj: mesaj,
+        };
+      }
+    }
+  } catch (e) {}
+  
+  return {
+    baslik: '✨ Günaydın!',
+    mesaj: 'Bugün senin için harika bir gün olacak. Burç yorumun hazır!',
+  };
 }
 
-// Günlük bildirim zamanla
 export async function gunlukBildirimZamanla() {
   if (Platform.OS === 'web') return;
 
   await Notifications.cancelAllScheduledNotificationsAsync();
 
-  // Sabah 09:00 bildirimi
-  const sabahMesaj = rastgeleMesaj('sabah');
+  const sabahMesaj = await kullaniciyaOzelMesaj();
   await Notifications.scheduleNotificationAsync({
     content: {
       title: sabahMesaj.baslik,
@@ -102,12 +116,10 @@ export async function gunlukBildirimZamanla() {
     } as any,
   });
 
-  // Akşam 21:00 bildirimi
-  const aksamMesaj = rastgeleMesaj('aksam');
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: aksamMesaj.baslik,
-      body: aksamMesaj.mesaj,
+      title: '🌙 İyi Akşamlar',
+      body: 'Gün bitti, yıldızlar sana fısıldıyor. Yarınki yorumun hazır olacak 🔮',
       sound: true,
     },
     trigger: {

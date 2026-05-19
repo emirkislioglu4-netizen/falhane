@@ -2,6 +2,26 @@ import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
+function burcHesapla(tarih: string): string {
+  if (!tarih) return '';
+  const [yil, ay, gun] = tarih.split('-').map(Number);
+  if (!ay || !gun) return '';
+  
+  if ((ay === 3 && gun >= 21) || (ay === 4 && gun <= 19)) return 'Koç';
+  if ((ay === 4 && gun >= 20) || (ay === 5 && gun <= 20)) return 'Boğa';
+  if ((ay === 5 && gun >= 21) || (ay === 6 && gun <= 20)) return 'İkizler';
+  if ((ay === 6 && gun >= 21) || (ay === 7 && gun <= 22)) return 'Yengeç';
+  if ((ay === 7 && gun >= 23) || (ay === 8 && gun <= 22)) return 'Aslan';
+  if ((ay === 8 && gun >= 23) || (ay === 9 && gun <= 22)) return 'Başak';
+  if ((ay === 9 && gun >= 23) || (ay === 10 && gun <= 22)) return 'Terazi';
+  if ((ay === 10 && gun >= 23) || (ay === 11 && gun <= 21)) return 'Akrep';
+  if ((ay === 11 && gun >= 22) || (ay === 12 && gun <= 21)) return 'Yay';
+  if ((ay === 12 && gun >= 22) || (ay === 1 && gun <= 19)) return 'Oğlak';
+  if ((ay === 1 && gun >= 20) || (ay === 2 && gun <= 18)) return 'Kova';
+  if ((ay === 2 && gun >= 19) || (ay === 3 && gun <= 20)) return 'Balık';
+  return '';
+}
+
 export default function GirisScreen() {
   const [rol, setRol] = useState<'musteri' | 'falci' | null>(null);
   const [mod, setMod] = useState<'giris' | 'kayit'>('giris');
@@ -9,9 +29,12 @@ export default function GirisScreen() {
   const [sifre, setSifre] = useState('');
   const [isim, setIsim] = useState('');
   const [uzmanlik, setUzmanlik] = useState('');
+  const [dogumTarihi, setDogumTarihi] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
   const [mesaj, setMesaj] = useState('');
   const [basarili, setBasarili] = useState(false);
+
+  const burc = burcHesapla(dogumTarihi);
 
   const handleSubmit = async () => {
     if (!email || !sifre) return;
@@ -27,6 +50,8 @@ export default function GirisScreen() {
             full_name: isim,
             rol: rol,
             uzmanlik: rol === 'falci' ? uzmanlik : null,
+            dogum_tarihi: dogumTarihi || null,
+            burc: burc || null,
           } 
         },
       });
@@ -37,7 +62,17 @@ export default function GirisScreen() {
         return;
       }
 
-      // Kayıt başarılı, otomatik giriş yap
+      // Kayıt sonrası profile doğum tarihi ve burç ekle
+      if (data.user) {
+        await supabase
+          .from('profiller')
+          .update({ 
+            dogum_tarihi: dogumTarihi || null,
+            burc: burc || null,
+          })
+          .eq('id', data.user.id);
+      }
+
       const { error: girisError } = await supabase.auth.signInWithPassword({
         email,
         password: sifre,
@@ -73,7 +108,7 @@ export default function GirisScreen() {
         <Text style={styles.basariliAlt}>
           {rol === 'falci' 
             ? 'Falhane falcı paneline katıldın. Müşterilerin seni bekliyor...' 
-            : 'Falhane\'ye katıldın. Yıldızlar seni bekliyor...'}
+            : burc ? `${burc} burcu olarak Falhane'ye katıldın ✨` : 'Falhane\'ye katıldın. Yıldızlar seni bekliyor...'}
         </Text>
         <TouchableOpacity style={styles.basariliBtn} onPress={() => { setBasarili(false); setRol(null); }}>
           <Text style={styles.basarliBtnText}>Devam Et</Text>
@@ -148,6 +183,24 @@ export default function GirisScreen() {
               value={isim}
               onChangeText={setIsim}
             />
+          </View>
+        )}
+
+        {mod === 'kayit' && rol === 'musteri' && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>DOĞUM TARİHİN</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="YYYY-AA-GG (örn: 2000-03-15)"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+              value={dogumTarihi}
+              onChangeText={setDogumTarihi}
+            />
+            {burc !== '' && (
+              <View style={styles.burcBox}>
+                <Text style={styles.burcText}>🔮 Senin burcun: <Text style={styles.burcAd}>{burc}</Text></Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -235,6 +288,9 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 16 },
   inputLabel: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 3, marginBottom: 8 },
   input: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 14, color: '#fff', fontSize: 13, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)' },
+  burcBox: { backgroundColor: 'rgba(127,119,221,0.15)', borderRadius: 10, padding: 10, marginTop: 8, borderWidth: 0.5, borderColor: 'rgba(127,119,221,0.3)' },
+  burcText: { fontSize: 13, color: '#fff', textAlign: 'center' },
+  burcAd: { color: '#AFA9EC', fontWeight: '600' },
   mesajBox: { backgroundColor: 'rgba(255,80,80,0.1)', borderRadius: 10, padding: 12, marginBottom: 12, borderWidth: 0.5, borderColor: 'rgba(255,80,80,0.3)' },
   mesajText: { fontSize: 12, color: '#ff6b6b' },
   btn: { backgroundColor: '#7F77DD', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 8 },

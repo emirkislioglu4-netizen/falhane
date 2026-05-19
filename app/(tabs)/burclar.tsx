@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { falBak } from '../../lib/claude';
+import { supabase } from '../../lib/supabase';
 
 const burclar = [
   { id: 'koc', isim: 'Koç', icon: '♈', tarih: '21 Mart - 19 Nisan', renk: '#E74C3C' },
@@ -18,11 +19,9 @@ const burclar = [
   { id: 'balik', isim: 'Balık', icon: '♓', tarih: '19 Şubat - 20 Mart', renk: '#9B59B6' },
 ];
 
-// Sabah 7'den önce ise önceki günü ver, sonra ise bugünü ver
 function getFalGunu(): string {
   const simdi = new Date();
   if (simdi.getHours() < 7) {
-    // Sabah 7'den önce, dün başlayan günü kullan
     simdi.setDate(simdi.getDate() - 1);
   }
   return simdi.toISOString().split('T')[0];
@@ -32,6 +31,23 @@ export default function BurclarScreen() {
   const [secilenBurc, setSecilenBurc] = useState<any>(null);
   const [yorum, setYorum] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
+  const [kullaniciBurcu, setKullaniciBurcu] = useState<string>('');
+
+  useEffect(() => {
+    yukle();
+  }, []);
+
+  const yukle = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase
+        .from('profiller')
+        .select('burc')
+        .eq('id', user.id)
+        .single();
+      if (data?.burc) setKullaniciBurcu(data.burc);
+    }
+  };
 
   const burcYorumuAl = async (burc: any) => {
     setSecilenBurc(burc);
@@ -76,6 +92,8 @@ export default function BurclarScreen() {
     setYukleniyor(false);
   };
 
+  const kullaniciBurc = burclar.find(b => b.isim === kullaniciBurcu);
+
   if (secilenBurc) {
     return (
       <ScrollView style={styles.container}>
@@ -119,13 +137,32 @@ export default function BurclarScreen() {
       </View>
 
       <View style={styles.body}>
-        <Text style={styles.sectionTitle}>BURCUNU SEÇ</Text>
+        {kullaniciBurc && (
+          <>
+            <Text style={styles.sectionTitle}>SENİN BURCUN</Text>
+            <TouchableOpacity 
+              style={[styles.benimBurc, { borderColor: kullaniciBurc.renk }]}
+              onPress={() => burcYorumuAl(kullaniciBurc)}
+            >
+              <Text style={styles.benimBurcIcon}>{kullaniciBurc.icon}</Text>
+              <View style={styles.benimBurcInfo}>
+                <Text style={styles.benimBurcIsim}>{kullaniciBurc.isim}</Text>
+                <Text style={styles.benimBurcTarih}>{kullaniciBurc.tarih}</Text>
+              </View>
+              <View style={styles.benimBurcBtn}>
+                <Text style={styles.benimBurcBtnText}>Bugünkü Yorumun →</Text>
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
+
+        <Text style={styles.sectionTitle}>TÜM BURÇLAR</Text>
         
         <View style={styles.burcGrid}>
           {burclar.map((b) => (
             <TouchableOpacity 
               key={b.id}
-              style={[styles.burcKart, { borderColor: b.renk + '60' }]}
+              style={[styles.burcKart, { borderColor: b.renk + '60' }, b.isim === kullaniciBurcu && styles.burcKartAktif]}
               onPress={() => burcYorumuAl(b)}
             >
               <Text style={styles.burcIcon}>{b.icon}</Text>
@@ -145,9 +182,17 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '600', color: '#fff', letterSpacing: 2 },
   subtitle: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 6 },
   body: { padding: 16 },
-  sectionTitle: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 3, marginBottom: 16, marginTop: 8 },
+  sectionTitle: { fontSize: 10, color: 'rgba(255,255,255,0.3)', letterSpacing: 3, marginBottom: 12, marginTop: 16 },
+  benimBurc: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(127,119,221,0.15)', borderRadius: 18, padding: 16, marginBottom: 8, gap: 14, borderWidth: 1 },
+  benimBurcIcon: { fontSize: 50 },
+  benimBurcInfo: { flex: 1 },
+  benimBurcIsim: { fontSize: 18, color: '#fff', fontWeight: '600', marginBottom: 3 },
+  benimBurcTarih: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
+  benimBurcBtn: { backgroundColor: '#7F77DD', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  benimBurcBtnText: { fontSize: 11, color: '#fff', fontWeight: '500' },
   burcGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   burcKart: { width: '31%', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 0.5 },
+  burcKartAktif: { backgroundColor: 'rgba(127,119,221,0.15)', borderWidth: 1 },
   burcIcon: { fontSize: 32, marginBottom: 6 },
   burcIsim: { fontSize: 13, color: '#fff', fontWeight: '600', marginBottom: 3 },
   burcTarih: { fontSize: 8, color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 12 },
