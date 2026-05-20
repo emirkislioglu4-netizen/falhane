@@ -3,6 +3,26 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
+function burcHesapla(tarih: string): string {
+  if (!tarih) return '';
+  const [yil, ay, gun] = tarih.split('-').map(Number);
+  if (!ay || !gun) return '';
+  
+  if ((ay === 3 && gun >= 21) || (ay === 4 && gun <= 19)) return 'Koç';
+  if ((ay === 4 && gun >= 20) || (ay === 5 && gun <= 20)) return 'Boğa';
+  if ((ay === 5 && gun >= 21) || (ay === 6 && gun <= 20)) return 'İkizler';
+  if ((ay === 6 && gun >= 21) || (ay === 7 && gun <= 22)) return 'Yengeç';
+  if ((ay === 7 && gun >= 23) || (ay === 8 && gun <= 22)) return 'Aslan';
+  if ((ay === 8 && gun >= 23) || (ay === 9 && gun <= 22)) return 'Başak';
+  if ((ay === 9 && gun >= 23) || (ay === 10 && gun <= 22)) return 'Terazi';
+  if ((ay === 10 && gun >= 23) || (ay === 11 && gun <= 21)) return 'Akrep';
+  if ((ay === 11 && gun >= 22) || (ay === 12 && gun <= 21)) return 'Yay';
+  if ((ay === 12 && gun >= 22) || (ay === 1 && gun <= 19)) return 'Oğlak';
+  if ((ay === 1 && gun >= 20) || (ay === 2 && gun <= 18)) return 'Kova';
+  if ((ay === 2 && gun >= 19) || (ay === 3 && gun <= 20)) return 'Balık';
+  return '';
+}
+
 export default function ProfilScreen() {
   const router = useRouter();
   const [kullanici, setKullanici] = useState<any>(null);
@@ -15,6 +35,9 @@ export default function ProfilScreen() {
   const [hakkinda, setHakkinda] = useState('');
   const [fiyat, setFiyat] = useState('199');
   const [avatar, setAvatar] = useState('🌙');
+  const [dogumTarihi, setDogumTarihi] = useState('');
+
+  const burc = burcHesapla(dogumTarihi);
 
   useFocusEffect(
     useCallback(() => {
@@ -45,6 +68,7 @@ export default function ProfilScreen() {
       setHakkinda(data.hakkinda || '');
       setFiyat(String(data.fiyat || 199));
       setAvatar(data.avatar || '🌙');
+      setDogumTarihi(data.dogum_tarihi || '');
     }
 
     setYukleniyor(false);
@@ -52,6 +76,8 @@ export default function ProfilScreen() {
 
   const kaydet = async () => {
     if (!kullanici) return;
+
+    const yeniBurc = burcHesapla(dogumTarihi);
 
     const { error } = await supabase
       .from('profiller')
@@ -61,6 +87,8 @@ export default function ProfilScreen() {
         hakkinda,
         fiyat: parseInt(fiyat) || 199,
         avatar,
+        dogum_tarihi: dogumTarihi || null,
+        burc: yeniBurc || null,
       })
       .eq('id', kullanici.id);
 
@@ -112,6 +140,9 @@ export default function ProfilScreen() {
         <Text style={styles.rol}>
           {isFalci ? '🔮 Falcı' : '✨ Müşteri'}
         </Text>
+        {profil?.burc && (
+          <Text style={styles.burcRozet}>★ {profil.burc} Burcu</Text>
+        )}
         <Text style={styles.email}>{kullanici.email}</Text>
       </View>
 
@@ -156,6 +187,20 @@ export default function ProfilScreen() {
               placeholder="Adın..."
               placeholderTextColor="rgba(255,255,255,0.3)"
             />
+
+            <Text style={styles.sectionTitle}>DOĞUM TARİHİN</Text>
+            <TextInput
+              style={styles.input}
+              value={dogumTarihi}
+              onChangeText={setDogumTarihi}
+              placeholder="YYYY-AA-GG (örn: 2000-03-15)"
+              placeholderTextColor="rgba(255,255,255,0.3)"
+            />
+            {burc !== '' && (
+              <View style={styles.burcBox}>
+                <Text style={styles.burcText}>🔮 Burcun: <Text style={styles.burcAd}>{burc}</Text></Text>
+              </View>
+            )}
 
             {isFalci && (
               <>
@@ -202,6 +247,15 @@ export default function ProfilScreen() {
           </>
         ) : (
           <>
+            {profil?.dogum_tarihi && (
+              <>
+                <Text style={styles.sectionTitle}>DOĞUM TARİHİ</Text>
+                <View style={styles.hakkindaBox}>
+                  <Text style={styles.hakkindaText}>{profil.dogum_tarihi}</Text>
+                </View>
+              </>
+            )}
+
             {isFalci && profil?.hakkinda && (
               <>
                 <Text style={styles.sectionTitle}>HAKKIMDA</Text>
@@ -237,12 +291,16 @@ export default function ProfilScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A0814' },
   bosContainer: { flex: 1, backgroundColor: '#0A0814', alignItems: 'center', justifyContent: 'center', padding: 32 },
+  bosIcon: { fontSize: 60, marginBottom: 16 },
+  bosBaslik: { fontSize: 18, color: '#fff', fontWeight: '600', marginBottom: 8 },
+  bosAlt: { fontSize: 13, color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   header: { padding: 32, paddingTop: 60, alignItems: 'center', backgroundColor: '#1a0533' },
   headerFalci: { backgroundColor: '#2a1547' },
   avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(127,119,221,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 1, borderColor: 'rgba(127,119,221,0.4)' },
   avatarIcon: { fontSize: 36 },
   isim: { fontSize: 22, fontWeight: '600', color: '#fff', marginBottom: 4 },
   rol: { fontSize: 12, color: '#AFA9EC', letterSpacing: 2, marginBottom: 4 },
+  burcRozet: { fontSize: 11, color: '#EF9F27', marginBottom: 6, letterSpacing: 1 },
   email: { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
   istatistikler: { flexDirection: 'row', gap: 10, padding: 16, paddingBottom: 0 },
   istatistikKart: { flex: 1, backgroundColor: 'rgba(127,119,221,0.1)', borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 0.5, borderColor: 'rgba(127,119,221,0.3)' },
@@ -254,6 +312,9 @@ const styles = StyleSheet.create({
   inputCokSatir: { minHeight: 80, textAlignVertical: 'top' },
   hakkindaBox: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 14, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)' },
   hakkindaText: { fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 20 },
+  burcBox: { backgroundColor: 'rgba(127,119,221,0.15)', borderRadius: 10, padding: 10, marginTop: 8, borderWidth: 0.5, borderColor: 'rgba(127,119,221,0.3)' },
+  burcText: { fontSize: 13, color: '#fff', textAlign: 'center' },
+  burcAd: { color: '#AFA9EC', fontWeight: '600' },
   avatarlar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   avatarSecim: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)' },
   avatarSecimAktif: { backgroundColor: 'rgba(127,119,221,0.3)', borderColor: 'rgba(127,119,221,0.6)' },
